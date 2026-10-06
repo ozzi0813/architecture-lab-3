@@ -31,5 +31,17 @@
 ## Actual impact (заповнити після реалізації)
 
 **Actual files changed:**
+- `src/shared/calculateTotal.ts` (зроблено чистою функцією без мутацій, конфіги передаються явно, логування винесено).
+- `src/inventory/StockRepository.ts` (додано атомарний метод `reserve(items)` для захисту інваріанту `available >= 0`).
+- `src/payments/internal/StripeClient.ts` (вилучено прямий виклик `markOrderPaid`, розірвано зворотну циклічну залежність).
+- `src/payments/normalizePaymentStatus.ts` (створено централізовану нормалізацію статусів).
+- `src/payments/index.ts` (створено вендор-нейтральний публічний фасад `PaymentService` та типи `PaymentRequest` / `PaymentResult`).
+- `src/orders/OrderService.ts` (делегує списання складу через `StockRepository.reserve()`, використовує нейтральний `PaymentService`, прибрано прямий доступ до Stripe).
+- `src/orders/mapPaymentStatus.ts`, `src/notifications/mapPaymentStatus.ts`, `src/reports/mapPaymentStatus.ts` (переведено на використання `normalizePaymentStatus` із модуля `payments`).
+- `src/checkout/CheckoutController.ts` (прибрано залежність від `StripePayload`, викликає `calculateTotal` із передаванням опцій та логує результат).
+- `tests/payments.test.ts`, `tests/level75.test.ts` (додано unit-тести на нормалізацію 4 статусів, атомарне резервування та чистоту розрахунків).
+- `DECISIONS.md` (додано 4 записи архітектурних рішень та AI review).
 
 **Difference from prediction and explanation:**
+- Прогноз повністю підтвердився щодо модулів `Inventory`, `Orders`, `Payments`, а також збереження публічного контракту `Checkout API` та сумісності з `checkout.functional.test.ts`.
+- Додатково до початкового мінімального прогнозу (рівень 60) на рівні 75 було модифіковано `src/shared/calculateTotal.ts`, `src/orders/OrderService.ts` та `src/checkout/CheckoutController.ts`. Це було необхідно для усунення витоку `StripePayload` за межі `Payments`, прибирання прямого запису в сховище залишків і перетворення `calculateTotal` на pure function із винесенням side effect логування на рівень оркестрації.
